@@ -35,7 +35,7 @@ export function CircleButton({ src, alt, onClick, children, className, "aria-lab
           </defs>
           <text className="circle-button__text">
             {/* Path runs L→R along bottom, then R→L along top; 50% is ~3 o'clock, ~87.5% is top-left arc. */}
-            <textPath href={`#${pathId}`} startOffset="0" textAnchor="start" lengthAdjust="spacingAndGlyphs">
+            <textPath href={`#${pathId}`} startOffset="2%" textAnchor="start" lengthAdjust="spacingAndGlyphs">
               {labelText}
             </textPath>
           </text>
