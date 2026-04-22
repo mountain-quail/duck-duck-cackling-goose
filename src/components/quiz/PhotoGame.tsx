@@ -1,27 +1,33 @@
+import { useDisplayImage } from "../../hooks/useDisplayImage";
+import { useGameMode } from "../../hooks/useGameMode";
 import { useQuizGameContext } from "../../hooks/useQuizGameContext";
-import { useRoundDisplay } from "../../hooks/useRoundDisplay";
-import { QuizRoundFeedback } from "./QuizRoundFeedback";
+import { useRoundPlaceholder } from "../../hooks/useRoundPlaceholder";
+import { useShowImage } from "../../hooks/useShowImage";
 
 export function PhotoGame() {
-  const d = useRoundDisplay();
+  const gameMode = useGameMode();
+  const { imageSrc, imageAlt } = useDisplayImage();
+  const showImage = useShowImage();
+  const ph = useRoundPlaceholder();
   const { engine } = useQuizGameContext();
 
+  if (gameMode !== "photo") return null;
+
   return (
-    <div className="image-wrap">
-      <div className={`image-placeholder ${d.showPlaceholder ? "" : "hidden"}`}>
+    <>
+      <div className={`image-placeholder ${ph.showPlaceholder ? "" : "hidden"}`}>
         <span className="spinner" aria-hidden="true" />
-        <span className="placeholder-text">{d.placeholderText}</span>
+        <span className="placeholder-text">{ph.showPlaceholder ? ph.placeholderText : ""}</span>
       </div>
       <img
-        className={`goose-image ${d.showImage ? "" : "hidden"}`}
-        src={d.imageSrc}
-        alt={d.imageAlt}
+        className={`goose-image ${showImage ? "" : "hidden"}`}
+        src={imageSrc}
+        alt={imageAlt}
         decoding="async"
         referrerPolicy="no-referrer"
         onLoad={engine.onImageLoad}
         onError={engine.onImageError}
       />
-      <QuizRoundFeedback feedback={d.feedback} />
-    </div>
+    </>
   );
 }

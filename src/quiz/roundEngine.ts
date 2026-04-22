@@ -14,18 +14,35 @@ import {
   taxonSquareUrl,
 } from "./inat";
 import {
+  audioStageHiddenAtom,
   commitPersistedAtom,
+  displayImageAtom,
+  errorMessageAtom,
+  guessDisabledAtom,
   patchPickerAtom,
-  patchRoundDisplayAtom,
   persistedAtom,
   presetRowsAtom,
+  roundCreditAtom,
+  roundFeedbackAtom,
+  roundPlaceholderAtom,
+  showAudioTapPlayAtom,
+  showImageAtom,
 } from "./atoms";
 import { startQuizAudioVisualizer } from "./audioVisualizer";
 import { canonicalStatsPairKey } from "./stats";
 import { getCurrentStatsFromState } from "./statsModel";
 import type { RoundMutable } from "./roundMutable";
 import type { InatTaxon, MediaMode, PersistedState, TaxonPair, TaxonSlot } from "./types";
-import type { PresetRow, QuizDomRefs, RoundDisplayState } from "./viewTypes";
+import {
+  initialDisplayImage,
+  initialRoundCredit,
+  type DisplayImageState,
+  type PresetRow,
+  type QuizDomRefs,
+  type RoundCreditState,
+  type RoundFeedback,
+  type RoundPlaceholderState,
+} from "./viewTypes";
 
 export interface RoundEngineDeps {
   getRefs: () => QuizDomRefs;
@@ -51,8 +68,32 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
   const store = getDefaultStore();
   const { getRefs, getMutable } = deps;
 
-  const patchDisplay = (partial: Partial<RoundDisplayState>): void => {
-    store.set(patchRoundDisplayAtom, partial);
+  const setRoundFeedback = (v: RoundFeedback): void => {
+    store.set(roundFeedbackAtom, v);
+  };
+  const setRoundCredit = (v: RoundCreditState): void => {
+    store.set(roundCreditAtom, v);
+  };
+  const setAudioStageHidden = (v: boolean): void => {
+    store.set(audioStageHiddenAtom, v);
+  };
+  const setShowAudioTapPlay = (v: boolean): void => {
+    store.set(showAudioTapPlayAtom, v);
+  };
+  const setErrorMessage = (v: string | null): void => {
+    store.set(errorMessageAtom, v);
+  };
+  const setGuessDisabled = (v: boolean): void => {
+    store.set(guessDisabledAtom, v);
+  };
+  const setRoundPlaceholder = (state: RoundPlaceholderState): void => {
+    store.set(roundPlaceholderAtom, state);
+  };
+  const setDisplayImage = (state: DisplayImageState): void => {
+    store.set(displayImageAtom, state);
+  };
+  const setShowImage = (v: boolean): void => {
+    store.set(showImageAtom, v);
   };
 
   const destroyQuizAudioVisualizer = (): void => {
@@ -76,17 +117,21 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
   const disposeQuizAudioRound = (): void => {
     stopQuizAudio();
     destroyQuizAudioVisualizer();
-    patchDisplay({ audioStageHidden: true, showAudioTapPlay: false });
+    if (store.get(persistedAtom).mediaMode === "audio") {
+      setAudioStageHidden(true);
+      setShowAudioTapPlay(false);
+    }
   };
 
   const tryPlayQuizAudio = async (): Promise<void> => {
-    patchDisplay({ showAudioTapPlay: false });
+    if (store.get(persistedAtom).mediaMode !== "audio") return;
+    setShowAudioTapPlay(false);
     const a = getRefs().quizAudioRef.current;
     if (!a) return;
     try {
       await a.play();
     } catch {
-      patchDisplay({ showAudioTapPlay: true });
+      setShowAudioTapPlay(true);
     }
   };
 
@@ -201,19 +246,17 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
     })();
   };
 
-  const hideError = (): void => patchDisplay({ errorMsg: null });
-  const hideFeedback = (): void => patchDisplay({ feedback: null });
+  const hideError = (): void => setErrorMessage(null);
 
   const bindPhotoQuizRound = (pair: TaxonPair, actual: TaxonSlot, imageUrl: string, login: string): void => {
     getMutable().roundActual = actual;
-    patchDisplay({
-      creditKind: "photo",
-      creditLogin: login,
-      imageAlt: `${actual === "a" ? pair.labelA : pair.labelB} (quiz image)`,
-      showPlaceholder: true,
-      showImage: false,
-      guessDisabled: true,
+    setRoundCredit({ creditKind: "photo", creditLogin: login });
+    setGuessDisabled(true);
+    setRoundPlaceholder({ showPlaceholder: true, placeholderText: "Loading photo…" });
+    setShowImage(false);
+    setDisplayImage({
       imageSrc: imageUrl,
+      imageAlt: `${actual === "a" ? pair.labelA : pair.labelB} (quiz image)`,
     });
   };
 
@@ -224,7 +267,9 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
     const epoch = ++m.startRoundEpoch;
 
     hideError();
-    hideFeedback();
+    setRoundFeedback(null);
+    setAudioStageHidden(true);
+    setShowAudioTapPlay(false);
     m.roundActual = null;
     disposeQuizAudioRound();
 
@@ -244,7 +289,6 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
       if (queued) {
         if (epoch !== m.startRoundEpoch) return;
         m.photoRoundPrefetchQueue.shift();
-        patchDisplay({ audioStageHidden: true });
         bindPhotoQuizRound(pair, queued.actual, queued.imageUrl, queued.login);
         return;
       }
@@ -252,13 +296,16 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
 
     if (epoch !== m.startRoundEpoch) return;
 
-    patchDisplay({
-      guessDisabled: true,
-      showPlaceholder: true,
-      placeholderText: mode === "photo" ? "Loading photo…" : "Loading recording…",
-      showImage: false,
-      ...(mode === "audio" ? { audioStageHidden: true } : {}),
-    });
+    if (mode === "photo") {
+      setGuessDisabled(true);
+      setRoundPlaceholder({ showPlaceholder: true, placeholderText: "Loading photo…" });
+      setShowImage(false);
+      setDisplayImage(initialDisplayImage());
+    } else {
+      setAudioStageHidden(true);
+      setGuessDisabled(true);
+      setRoundPlaceholder({ showPlaceholder: true, placeholderText: "Loading recording…" });
+    }
 
     const retrySlot = peekPendingMediaRetry(mode, pair);
     const actual: TaxonSlot = retrySlot ? retrySlot.actual : Math.random() < 0.5 ? "a" : "b";
@@ -266,25 +313,21 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
 
     try {
       if (mode === "photo") {
-        patchDisplay({ audioStageHidden: true });
         const { imageUrl, login } = await fetchObservationForRandomCutoff(taxonId);
         if (epoch !== m.startRoundEpoch) return;
         bindPhotoQuizRound(pair, actual, imageUrl, login);
       } else {
-        patchDisplay({ imageSrc: undefined, showImage: false });
         const { soundUrl, login } = await fetchObservationWithSoundForRandomCutoff(taxonId);
         if (epoch !== m.startRoundEpoch) return;
         m.roundActual = actual;
 
-        patchDisplay({ creditKind: "audio", creditLogin: login });
+        setRoundCredit({ creditKind: "audio", creditLogin: login });
 
         const revealAudio = (): void => {
           clearPendingMediaRetry();
-          patchDisplay({
-            showPlaceholder: false,
-            audioStageHidden: false,
-            guessDisabled: false,
-          });
+          setAudioStageHidden(false);
+          setRoundPlaceholder({ showPlaceholder: false });
+          setGuessDisabled(false);
           const wrap = getRefs().audioVisualizerWrapRef.current;
           const audio = getRefs().quizAudioRef.current;
           if (wrap && audio) {
@@ -303,7 +346,7 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
           m.roundActual = null;
           m.pendingMediaRetry = { mode: "audio", actual, taxonId };
           disposeQuizAudioRound();
-          patchDisplay({ errorMsg: "Audio failed to load. Trying another…" });
+          setErrorMessage("Audio failed to load. Trying another…");
           window.setTimeout(() => void startRound(), 800);
         };
         audio.addEventListener("error", onAudioError, { once: true });
@@ -315,14 +358,20 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Something went wrong.";
       m.pendingMediaRetry = { mode, actual, taxonId };
-      patchDisplay({
-        errorMsg: `${msg} Retrying…`,
+      setRoundCredit(initialRoundCredit());
+      setErrorMessage(`${msg} Retrying…`);
+      setGuessDisabled(true);
+      setRoundPlaceholder({
         showPlaceholder: true,
-        showImage: false,
-        creditLogin: null,
-        creditKind: null,
-        guessDisabled: true,
+        placeholderText: mode === "audio" ? "Loading recording…" : "Loading photo…",
       });
+      if (mode === "photo") {
+        setShowImage(false);
+        setDisplayImage(initialDisplayImage());
+      }
+      if (mode === "audio") {
+        setAudioStageHidden(true);
+      }
       disposeQuizAudioRound();
       window.setTimeout(() => {
         hideError();
@@ -338,9 +387,9 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
     const correct = guess === actual;
 
     m.roundBusy = true;
-    patchDisplay({ guessDisabled: true });
+    setGuessDisabled(true);
     getRefs().quizAudioRef.current?.pause();
-    patchDisplay({ feedback: { kind: correct ? "correct" : "wrong", text: correct ? "✓" : "✗" } });
+    setRoundFeedback({ kind: correct ? "correct" : "wrong", text: correct ? "✓" : "✗" });
 
     const pair = store.get(persistedAtom).activePair;
     const stats = { ...getCurrentStatsFromState(store.get(persistedAtom)) };
@@ -372,7 +421,7 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
     }));
 
     window.setTimeout(() => {
-      hideFeedback();
+      setRoundFeedback(null);
       m.roundBusy = false;
       void startRound();
     }, FEEDBACK_MS);
@@ -386,9 +435,9 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
     const revealedLabel = actual === "a" ? pair.labelA : pair.labelB;
 
     m.roundBusy = true;
-    patchDisplay({ guessDisabled: true });
+    setGuessDisabled(true);
     getRefs().quizAudioRef.current?.pause();
-    patchDisplay({ feedback: { kind: "skip", text: revealedLabel } });
+    setRoundFeedback({ kind: "skip", text: revealedLabel });
 
     const stats = { ...getCurrentStatsFromState(store.get(persistedAtom)) };
     const low = Math.min(pair.idA, pair.idB);
@@ -405,7 +454,7 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
     }));
 
     window.setTimeout(() => {
-      hideFeedback();
+      setRoundFeedback(null);
       m.roundBusy = false;
       void startRound();
     }, SKIP_REVEAL_MS);
@@ -414,11 +463,9 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
   const onImageLoad = (): void => {
     if (store.get(persistedAtom).mediaMode !== "photo") return;
     clearPendingMediaRetry();
-    patchDisplay({
-      showPlaceholder: false,
-      showImage: true,
-      guessDisabled: false,
-    });
+    setRoundPlaceholder({ showPlaceholder: false });
+    setGuessDisabled(false);
+    setShowImage(true);
     schedulePhotoPrefetchPump();
   };
 
@@ -431,11 +478,9 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
     const taxonId = actual === "a" ? pair.idA : pair.idB;
     m.roundActual = null;
     m.pendingMediaRetry = { mode: "photo", actual, taxonId };
-    patchDisplay({
-      errorMsg: "Image failed to load. Trying another…",
-      showPlaceholder: true,
-      showImage: false,
-    });
+    setErrorMessage("Image failed to load. Trying another…");
+    setRoundPlaceholder({ showPlaceholder: true, placeholderText: "Loading photo…" });
+    setShowImage(false);
     window.setTimeout(() => void startRound(), 800);
   };
 

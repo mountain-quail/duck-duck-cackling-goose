@@ -1,12 +1,14 @@
+import { useErrorMessage } from "../../hooks/useErrorMessage";
 import { useGameMode } from "../../hooks/useGameMode";
+import { useGuessDisabled } from "../../hooks/useGuessDisabled";
 import { useGuessHandlers } from "../../hooks/useGuessHandlers";
 import { useQuizPersisted } from "../../hooks/useQuizPersisted";
-import { useRoundDisplay } from "../../hooks/useRoundDisplay";
 
 export function QuizGuessActions() {
   const gameMode = useGameMode();
   const { activePair: pair } = useQuizPersisted();
-  const d = useRoundDisplay();
+  const guessDisabled = useGuessDisabled();
+  const errorMessage = useErrorMessage();
   const { onGuessA, onGuessB, onSkip } = useGuessHandlers();
 
   const skipAria =
@@ -17,22 +19,22 @@ export function QuizGuessActions() {
   return (
     <>
       <div className="actions">
-        <button type="button" className="btn btn-cackling" disabled={d.guessDisabled} onClick={onGuessA}>
+        <button type="button" className="btn btn-cackling" disabled={guessDisabled} onClick={onGuessA}>
           {pair.labelA}
         </button>
-        <button type="button" className="btn btn-canada" disabled={d.guessDisabled} onClick={onGuessB}>
+        <button type="button" className="btn btn-canada" disabled={guessDisabled} onClick={onGuessB}>
           {pair.labelB}
         </button>
       </div>
 
       <div className="actions-skip">
-        <button type="button" className="btn btn-skip" disabled={d.guessDisabled} aria-label={skipAria} onClick={onSkip}>
+        <button type="button" className="btn btn-skip" disabled={guessDisabled} aria-label={skipAria} onClick={onSkip}>
           What the heck is even that?
         </button>
       </div>
 
-      <p className={`error ${d.errorMsg ? "" : "hidden"}`} role="alert">
-        {d.errorMsg ?? ""}
+      <p className={`error ${errorMessage ? "" : "hidden"}`} role="alert">
+        {errorMessage ?? ""}
       </p>
     </>
   );

@@ -23,19 +23,23 @@ export interface StatsMatrixView {
   whenBSkip: string;
 }
 
-export interface RoundDisplayState {
-  showPlaceholder: boolean;
-  placeholderText: string;
-  showImage: boolean;
-  imageSrc: string | undefined;
-  imageAlt: string;
+export type RoundFeedback = { kind: "correct" | "wrong" | "skip"; text: string } | null;
+
+/** iNat observation credit for the current round (separate from round display atom). */
+export interface RoundCreditState {
   creditLogin: string | null;
   creditKind: "photo" | "audio" | null;
-  feedback: { kind: "correct" | "wrong" | "skip"; text: string } | null;
-  errorMsg: string | null;
-  audioStageHidden: boolean;
-  showAudioTapPlay: boolean;
-  guessDisabled: boolean;
+}
+
+/** Loading line + spinner (photo and audio). See `roundPlaceholderAtom`. */
+export type RoundPlaceholderState =
+  | { showPlaceholder: false }
+  | { showPlaceholder: true; placeholderText: string };
+
+/** Current quiz image URL and alt (photo mode). See `displayImageAtom`. */
+export interface DisplayImageState {
+  imageSrc: string | undefined;
+  imageAlt: string;
 }
 
 export interface ModalState {
@@ -53,19 +57,19 @@ export interface PickerState {
   bgB: string | undefined;
 }
 
-export const initialRoundDisplay = (): RoundDisplayState => ({
-  showPlaceholder: true,
-  placeholderText: "Loading photo…",
-  showImage: false,
-  imageSrc: undefined,
-  imageAlt: "",
+export const initialRoundCredit = (): RoundCreditState => ({
   creditLogin: null,
   creditKind: null,
-  feedback: null,
-  errorMsg: null,
-  audioStageHidden: true,
-  showAudioTapPlay: false,
-  guessDisabled: true,
+});
+
+export const initialRoundPlaceholder = (): RoundPlaceholderState => ({
+  showPlaceholder: true,
+  placeholderText: "Loading photo…",
+});
+
+export const initialDisplayImage = (): DisplayImageState => ({
+  imageSrc: undefined,
+  imageAlt: "",
 });
 
 export const initialModalState = (): ModalState => ({
@@ -98,31 +102,16 @@ export interface UseQuizGameResult {
   statLongestStreak: string;
   statTotalPct: string;
 
-  showPlaceholder: boolean;
-  placeholderText: string;
-  showImage: boolean;
-  imageSrc: string | undefined;
-  imageAlt: string;
   onImageLoad: () => void;
   onImageError: () => void;
 
-  creditLogin: string | null;
-  creditKind: "photo" | "audio" | null;
-
-  feedback: RoundDisplayState["feedback"];
-
-  audioStageHidden: boolean;
   audioVisualizerWrapRef: RefObject<HTMLDivElement | null>;
   quizAudioRef: RefObject<HTMLAudioElement | null>;
-  showAudioTapPlay: boolean;
   onAudioTapPlay: () => void;
 
-  guessDisabled: boolean;
   onGuessA: () => void;
   onGuessB: () => void;
   onSkip: () => void;
-
-  errorMsg: string | null;
 
   statsOpen: boolean;
   openStats: () => void;

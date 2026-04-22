@@ -1,42 +1,72 @@
 # Duck Duck Cackling Goose
 
-A small browser game: tell two **iNaturalist** species apart from research-grade photos. Defaults to **Cackling Goose** vs **Canada Goose**; open **Species pair** for presets or tap the **circular taxon photos** to search iNaturalist species (taxa with at least one observation; quiz photos are still research-grade). The static site lives in **`docs/`** for [GitHub Pages](https://pages.github.com/).
+A small browser game: tell two **iNaturalist** species apart from research-grade photos or audio. Defaults to **Cackling Goose** vs **Canada Goose**; open **Species pair** for presets or tap the **circular taxon photos** to search iNaturalist species (taxa with at least one observation; quiz media is still research-grade). The production build is written to **`docs/`** for [GitHub Pages](https://pages.github.com/).
+
+Stack: **React 19**, **TypeScript**, **Vite 6**, **Jotai** (see `package.json`).
 
 ## Development
 
-Install dependencies (Node 18+ recommended):
+Install dependencies (Node 20+ recommended; Node 18+ should work):
 
 ```bash
 npm install
 ```
 
-Compile TypeScript (source in [`src/app.ts`](src/app.ts)) to the deployed script:
+Start the Vite dev server (hot reload):
+
+```bash
+npm run dev
+```
+
+Open the URL Vite prints (usually `http://localhost:5173`). Edit files under **`src/`** only; the dev server serves the app from the project root `index.html` and `src/main.tsx`.
+
+## Build
+
+Run a production build (TypeScript check, then Vite bundle):
 
 ```bash
 npm run build
 ```
 
-This writes [`docs/app.js`](docs/app.js). Edit **`src/app.ts`**, not `docs/app.js`, then run `npm run build` before committing.
+This runs `tsc -p tsconfig.app.json --noEmit` and then `vite build`. Output goes to **`docs/`** (`outDir` in [`vite.config.ts`](vite.config.ts)), with `base: "./"` so asset paths work on GitHub Pages project sites.
 
-A **Husky** [`.husky/pre-commit`](.husky/pre-commit) hook runs `npm run build` and stages `docs/app.js` so commits stay in sync with TypeScript. If you commit without `npm install`, install hooks with `npm install` first.
+A **Husky** [`.husky/pre-commit`](.husky/pre-commit) hook runs `npm run build` and stages **`docs/`** so commits stay aligned with the built site. After a fresh clone, run `npm install` once so the `prepare` script installs Husky.
 
-## Run locally
+## Run the built site locally
 
-From the repository root:
+After `npm run build`, serve the contents of **`docs/`** (use a real HTTP server so `localStorage` behaves predictably):
 
 ```bash
 npx --yes serve docs
 ```
 
-Open the URL it prints (for example `http://localhost:3000`). Use a local server so `localStorage` and cookies behave reliably; opening `index.html` directly as a `file://` URL can be flaky.
+Or use Vite’s preview server (serves the same `docs/` output from [`vite.config.ts`](vite.config.ts)):
+
+```bash
+npx vite preview
+```
+
+Open the URL shown in the terminal (for example `http://localhost:4173` for `vite preview`, or the port `serve` prints).
 
 ### URL parameters (share a species pair)
 
 On load, if both are present, **`taxonA`** and **`taxonB`** set the active pair (iNaturalist taxon IDs). Short aliases **`a`** and **`b`** work the same. Example:
 
-`http://localhost:3000/?taxonA=59220&taxonB=7089`
+`http://localhost:4173/?taxonA=59220&taxonB=7089`
 
 The app resolves names from the taxa API, persists the pair, and keeps the query string in sync with **`history.replaceState`** when you change species (other query parameters are preserved).
+
+## Deploy on GitHub Pages
+
+1. **Build** so `docs/` is up to date: `npm run build` (or commit via the pre-commit hook so `docs/` is included).
+2. Push to your repository’s default branch.
+3. On GitHub: **Settings → Pages → Build and deployment**.
+4. Under **Branch**, select your default branch (for example **`main`**) and folder **`/docs`**, then save.
+5. After a short build, the site is available at:
+
+   `https://YOUR_USERNAME.github.io/YOUR_REPO/`
+
+For a **user or organization** site (`username.github.io`), you can use the same **`/docs`** source on the `main` branch, or build into another branch—just ensure the built `index.html` and assets are what Pages serves.
 
 ## iNaturalist access
 
@@ -56,35 +86,16 @@ On first load, any legacy **`ddcg_inat_jwt`** value in `localStorage` from an ol
 
 IDs follow [iNaturalist](https://www.inaturalist.org/) taxa; verify on the taxon page if names change.
 
-## Deploy on GitHub Pages
-
-1. Create a new repository on GitHub (for example `duck-duck-cackling-goose`).
-2. From this project directory:
-
-   ```bash
-   git init
-   git add .
-   git commit -m "Add Duck Duck Cackling Goose game"
-   git branch -M main
-   git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
-   git push -u origin main
-   ```
-
-3. On GitHub: **Settings → Pages → Build and deployment**.
-4. Under **Branch**, choose **`main`** and folder **`/docs`**, then save.
-5. After a minute or two, the site will be at:
-
-   `https://YOUR_USERNAME.github.io/YOUR_REPO/`
-
 ## Project layout
 
 | Path | Purpose |
 |------|--------|
-| `src/app.ts` | TypeScript source (game, API, storage) |
-| `docs/app.js` | Compiled output (run `npm run build`) |
-| `docs/index.html` | Page structure, statistics and settings modals |
-| `docs/styles.css` | Layout and theme |
-| `docs/.nojekyll` | Disables Jekyll so odd paths are not mis-processed |
+| `index.html` | Vite entry (root `div`, loads `src/main.tsx`) |
+| `src/main.tsx`, `src/App.tsx` | React bootstrap and app shell |
+| `src/components/quiz/` | Quiz UI (game area, modals, header) |
+| `src/quiz/` | Game logic, iNat API, Jotai atoms, persistence |
+| `docs/` | **Production build output** — do not hand-edit; run `npm run build` |
+| `vite.config.ts` | Vite + React; `build.outDir: "docs"` for GitHub Pages |
 
 **Storage:** Active species pair and **per-pair** stats (streaks, totals, confusion matrix) live in **`localStorage`** under `ddcg_v2`. A legacy **`ddcg_stats`** cookie from older builds is migrated once into the default geese pair (`59220-7089`) and then cleared.
 

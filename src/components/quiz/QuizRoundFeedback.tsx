@@ -1,7 +1,7 @@
-import type { RoundDisplayState } from "../../quiz/viewTypes";
+import type { RoundFeedback } from "../../quiz/viewTypes";
 
 interface QuizRoundFeedbackProps {
-  feedback: RoundDisplayState["feedback"];
+  feedback: RoundFeedback;
 }
 
 export function QuizRoundFeedback({ feedback }: QuizRoundFeedbackProps) {
