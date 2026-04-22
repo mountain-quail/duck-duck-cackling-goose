@@ -470,10 +470,19 @@ body {
 
 .modal-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 1rem;
+}
+
+.modal-header-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.modal-header-text .modal-title {
+  margin: 0;
 }
 
 .modal-title {
@@ -734,60 +743,150 @@ body {
 }
 
 .settings-sub {
-  margin: 0 0 0.85rem;
+  margin: 0.4rem 0 0.85rem;
   font-size: 0.82rem;
   color: var(--text-muted);
   line-height: 1.45;
+}
+
+.modal-header .settings-sub {
+  margin-bottom: 0;
 }
 
 .taxon-pick-row {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 1rem;
+  gap: 0.5rem 1.25rem;
+  flex-wrap: wrap;
   margin-bottom: 1.15rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid var(--surface-elevated);
 }
 
-.taxon-pick {
+/* CircleButton — circular image, optional concentric text via SVG */
+.circle-button {
   position: relative;
-  width: 4.5rem;
-  height: 4.5rem;
-  padding: 0;
-  border: 3px solid var(--surface-elevated);
-  border-radius: 50%;
-  cursor: pointer;
-  background-color: var(--bg);
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  display: inline-flex;
   flex-shrink: 0;
-  transition: border-color 0.15s, transform 0.1s;
-  box-shadow: 0 4px 16px var(--shadow-soft);
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  line-height: 0;
+  transition: transform 0.1s;
+  vertical-align: top;
+  color: var(--text);
 }
 
-.taxon-pick:hover {
+.circle-button--image-only {
+  width: 4.5rem;
+  height: 4.5rem;
+  border: 3px solid var(--surface-elevated);
+  border-radius: 50%;
+  background-color: var(--bg);
+  box-shadow: 0 4px 16px var(--shadow-soft);
+  transition: border-color 0.15s, transform 0.1s, box-shadow 0.1s;
+}
+
+.circle-button--image-only .circle-button__image-wrap {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  border: none;
+}
+
+.circle-button--with-label {
+  width: 5.5rem;
+  height: 5.5rem;
+  transition: transform 0.1s;
+}
+
+.circle-button--with-label .circle-button__image-wrap {
+  position: relative;
+  z-index: 1;
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid var(--surface-elevated);
+  background-color: var(--bg);
+  box-shadow: 0 4px 16px var(--shadow-soft);
+  flex-shrink: 0;
+  transition: border-color 0.15s, transform 0.1s, box-shadow 0.1s;
+}
+
+.circle-button__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.circle-button__img--empty {
+  min-height: 3rem;
+  background: linear-gradient(160deg, var(--surface) 0%, var(--bg) 100%);
+}
+
+.circle-button__image-wrap {
+  position: relative;
+  z-index: 1;
+}
+
+.circle-button__ring {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.circle-button__text {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  fill: currentColor;
+  user-select: none;
+  font-size: 0.38rem;
+}
+
+@media (min-width: 400px) {
+  .circle-button--with-label .circle-button__text {
+    font-size: 0.5rem;
+  }
+}
+
+.circle-button--image-only:hover {
   border-color: var(--accent-canada);
   transform: scale(1.04);
 }
 
-.taxon-pick:focus {
+.circle-button--image-only:focus {
   outline: none;
+}
+
+.circle-button--image-only:focus-visible {
   border-color: var(--accent-cackling);
   box-shadow: 0 0 0 3px rgba(45, 143, 82, 0.35);
 }
 
-.taxon-pick-label {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
+.circle-button--with-label:hover .circle-button__image-wrap,
+.circle-button--with-label:focus-visible .circle-button__image-wrap {
+  border-color: var(--accent-canada);
+  transform: scale(1.04);
+}
+
+.circle-button--with-label:focus {
+  outline: none;
+}
+
+.circle-button--with-label:focus-visible .circle-button__image-wrap {
+  border-color: var(--accent-cackling);
+  box-shadow: 0 0 0 3px rgba(45, 143, 82, 0.35);
 }
 
 .media-mode {

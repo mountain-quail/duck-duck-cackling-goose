@@ -55,6 +55,9 @@ export interface ModalState {
 export interface PickerState {
   bgA: string | undefined;
   bgB: string | undefined;
+  /** Plain image URLs for <img src>; mirrors bgA/bgB */
+  urlA: string | undefined;
+  urlB: string | undefined;
 }
 
 export const initialRoundCredit = (): RoundCreditState => ({
@@ -85,6 +88,8 @@ export const initialModalState = (): ModalState => ({
 export const initialPickerState = (): PickerState => ({
   bgA: undefined,
   bgB: undefined,
+  urlA: undefined,
+  urlB: undefined,
 });
 
 export interface QuizDomRefs {

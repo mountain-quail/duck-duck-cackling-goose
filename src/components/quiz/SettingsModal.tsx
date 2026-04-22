@@ -9,6 +9,7 @@ import { usePickerState } from "../../hooks/usePickerState";
 import { usePresetRows } from "../../hooks/usePresetRows";
 import { useQuizPersisted } from "../../hooks/useQuizPersisted";
 import { useQuizSettingsActions } from "../../hooks/useQuizSettingsActions";
+import { CircleButton } from "./CircleButton";
 import { IconClose } from "./QuizIcons";
 
 function useRecentPairThumbnails(pairs: TaxonPair[]) {
@@ -59,8 +60,6 @@ export function SettingsModal() {
   const recentThumbs = useRecentPairThumbnails(recentForSettings);
 
   const pair = persisted.activePair;
-  const pickerLabelA = `Left species: ${pair.labelA}. Tap to replace.`;
-  const pickerLabelB = `Right species: ${pair.labelB}. Tap to replace.`;
   const pickerAriaA = `Replace ${pair.labelA} (left quiz button)`;
   const pickerAriaB = `Replace ${pair.labelB} (right quiz button)`;
 
@@ -69,44 +68,48 @@ export function SettingsModal() {
       ref={settingsDialogRef}
       className="modal"
       aria-labelledby="settingsTitle"
+      aria-describedby="settingsSub"
       onClick={(e: MouseEvent<HTMLDialogElement>) => {
         if (e.target === settingsDialogRef.current) closeSettings();
       }}
     >
       <div className="modal-inner">
         <div className="modal-header">
-          <h2 id="settingsTitle" className="modal-title">
-            Pick your pair
-          </h2>
+          <div className="modal-header-text">
+            <h2 id="settingsTitle" className="modal-title">
+              Pick your pair
+            </h2>
+            <p id="settingsSub" className="settings-sub">
+              Swap out one of the taxons for a custom challenge
+            </p>
+          </div>
           <button type="button" className="icon-btn modal-close" aria-label="Close" onClick={closeSettings}>
             <IconClose />
           </button>
         </div>
         <div className="taxon-pick-row" role="group" aria-label="Current species pair">
-          <button
-            type="button"
-            className="taxon-pick"
-            aria-haspopup="dialog"
+          <CircleButton
+            src={picker.urlA ?? ""}
+            alt=""
             aria-label={pickerAriaA}
-            style={picker.bgA ? { backgroundImage: picker.bgA } : undefined}
+            aria-haspopup="dialog"
             onClick={() => onPickTaxonSlot("a")}
           >
-            <span className="taxon-pick-label">{pickerLabelA}</span>
-          </button>
-          <button
-            type="button"
-            className="taxon-pick"
-            aria-haspopup="dialog"
+            {pair.labelA}
+          </CircleButton>
+          <CircleButton
+            src={picker.urlB ?? ""}
+            alt=""
             aria-label={pickerAriaB}
-            style={picker.bgB ? { backgroundImage: picker.bgB } : undefined}
+            aria-haspopup="dialog"
             onClick={() => onPickTaxonSlot("b")}
           >
-            <span className="taxon-pick-label">{pickerLabelB}</span>
-          </button>
+            {pair.labelB}
+          </CircleButton>
         </div>
         <div className="media-mode" role="group" aria-labelledby="mediaModeLabel">
           <div className="media-mode-label" id="mediaModeLabel">
-            Stimulus
+            Game mode
           </div>
           <div className="media-mode-segment">
             <button

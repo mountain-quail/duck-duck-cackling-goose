@@ -514,6 +514,8 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
     store.set(patchPickerAtom, {
       bgA: urlA ? `url("${urlA}")` : undefined,
       bgB: urlB ? `url("${urlB}")` : undefined,
+      urlA: urlA ?? undefined,
+      urlB: urlB ?? undefined,
     });
   };
 
