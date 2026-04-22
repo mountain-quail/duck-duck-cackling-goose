@@ -15,6 +15,26 @@ import {
 } from "./stats";
 import type { PersistedState, StatsSnapshot, TaxonPair } from "./types";
 
+function isValidTaxonPair(p: unknown): p is TaxonPair {
+  return (
+    p !== null &&
+    typeof p === "object" &&
+    typeof (p as TaxonPair).idA === "number" &&
+    typeof (p as TaxonPair).idB === "number" &&
+    typeof (p as TaxonPair).labelA === "string" &&
+    typeof (p as TaxonPair).labelB === "string"
+  );
+}
+
+function normalizeRecentPairs(raw: unknown): TaxonPair[] {
+  if (!Array.isArray(raw)) return [];
+  const out: TaxonPair[] = [];
+  for (const item of raw) {
+    if (isValidTaxonPair(item)) out.push(clonePair(item));
+  }
+  return out.slice(0, 20);
+}
+
 interface LegacyStatsPartial {
   totalAttempts?: number;
   totalCorrect?: number;
@@ -98,7 +118,8 @@ export function loadPersisted(): PersistedState {
         }
       }
       const mediaMode = isMediaMode(parsed.mediaMode) && parsed.mediaMode === "audio" ? "audio" : "photo";
-      return { activePair, statsByPairKey, mediaMode };
+      const recentPairs = normalizeRecentPairs(parsed.recentPairs);
+      return { activePair, statsByPairKey, mediaMode, recentPairs };
     }
   } catch {
     /* ignore */
@@ -112,13 +133,14 @@ export function loadPersisted(): PersistedState {
       DEFAULT_PAIR.idB
     );
   }
-  return { activePair: clonePair(DEFAULT_PAIR), statsByPairKey, mediaMode: "photo" };
+  return { activePair: clonePair(DEFAULT_PAIR), statsByPairKey, mediaMode: "photo", recentPairs: [] };
 }
 
 export function savePersisted(state: PersistedState): void {
   const normalized: PersistedState = {
     ...state,
     statsByPairKey: normalizeStatsByPairKeyMap(state.statsByPairKey),
+    recentPairs: state.recentPairs ?? [],
   };
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
@@ -155,5 +177,52 @@ export function setActivePairInState(state: PersistedState, pair: TaxonPair): Pe
   if (!statsByPairKey[k]) {
     statsByPairKey[k] = { ...STATS_DEFAULT };
   }
+
+  const prevKey = canonicalStatsPairKey(state.activePair);
+  let recentPairs = state.recentPairs ?? [];
+  if (prevKey !== k) {
+    recentPairs = recentPairs.filter((p) => canonicalStatsPairKey(p) !== k);
+    recentPairs = [clonePair(nextPair), ...recentPairs].slice(0, 20);
+  }
+
+  return { ...state, activePair: nextPair, statsByPairKey, recentPairs };
+}
+
+export function clonePersistedState(state: PersistedState): PersistedState {
+  const statsByPairKey: Record<string, StatsSnapshot> = {};
+  for (const [k, v] of Object.entries(state.statsByPairKey)) {
+    statsByPairKey[k] = { ...STATS_DEFAULT, ...v };
+  }
+  return {
+    activePair: clonePair(state.activePair),
+    statsByPairKey,
+    mediaMode: state.mediaMode,
+    recentPairs: (state.recentPairs ?? []).map((p) => clonePair(p)),
+  };
+}
+
+/** While settings is open: change the working pair and stats key without mutating the recent list (recents are applied on close). */
+export function applyPairInDraftState(state: PersistedState, pair: TaxonPair): PersistedState {
+  const nextPair = clonePair(pair);
+  const k = canonicalStatsPairKey(nextPair);
+  const statsByPairKey = { ...state.statsByPairKey };
+  if (!statsByPairKey[k]) {
+    statsByPairKey[k] = { ...STATS_DEFAULT };
+  }
   return { ...state, activePair: nextPair, statsByPairKey };
+}
+
+export function mergeSessionStats(
+  committed: PersistedState,
+  draft: PersistedState
+): Record<string, StatsSnapshot> {
+  const keys = new Set([
+    ...Object.keys(committed.statsByPairKey),
+    ...Object.keys(draft.statsByPairKey),
+  ]);
+  const out: Record<string, StatsSnapshot> = {};
+  for (const k of keys) {
+    out[k] = { ...STATS_DEFAULT, ...committed.statsByPairKey[k], ...draft.statsByPairKey[k] };
+  }
+  return out;
 }

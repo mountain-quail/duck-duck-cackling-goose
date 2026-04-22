@@ -15,12 +15,12 @@ import {
 } from "./inat";
 import {
   audioStageHiddenAtom,
-  commitPersistedAtom,
+  commitOrDraftPersistedAtom,
   displayImageAtom,
   errorMessageAtom,
   guessDisabledAtom,
+  getEffectivePersistedFromStore,
   patchPickerAtom,
-  persistedAtom,
   presetRowsAtom,
   roundCreditAtom,
   roundFeedbackAtom,
@@ -117,14 +117,14 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
   const disposeQuizAudioRound = (): void => {
     stopQuizAudio();
     destroyQuizAudioVisualizer();
-    if (store.get(persistedAtom).mediaMode === "audio") {
+    if (getEffectivePersistedFromStore().mediaMode === "audio") {
       setAudioStageHidden(true);
       setShowAudioTapPlay(false);
     }
   };
 
   const tryPlayQuizAudio = async (): Promise<void> => {
-    if (store.get(persistedAtom).mediaMode !== "audio") return;
+    if (getEffectivePersistedFromStore().mediaMode !== "audio") return;
     setShowAudioTapPlay(false);
     const a = getRefs().quizAudioRef.current;
     if (!a) return;
@@ -175,7 +175,7 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
   let schedulePhotoPrefetchPump: () => void;
 
   schedulePhotoPrefetchPump = (): void => {
-    const persisted = store.get(persistedAtom);
+    const persisted = getEffectivePersistedFromStore();
     if (persisted.mediaMode !== "photo") return;
     const m = getMutable();
     if (m.photoPrefetchPumpRunning) return;
@@ -183,16 +183,16 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
     void (async () => {
       try {
         while (
-          store.get(persistedAtom).mediaMode === "photo" &&
+          getEffectivePersistedFromStore().mediaMode === "photo" &&
           getMutable().photoRoundPrefetchQueue.length < PHOTO_PREFETCH_QUEUE_MAX
         ) {
           const genBefore = getMutable().photoPrefetchGen;
           const lenBefore = getMutable().photoRoundPrefetchQueue.length;
 
-          if (store.get(persistedAtom).mediaMode !== "photo") break;
+          if (getEffectivePersistedFromStore().mediaMode !== "photo") break;
           if (getMutable().photoRoundPrefetchQueue.length >= PHOTO_PREFETCH_QUEUE_MAX) break;
 
-          const pair = store.get(persistedAtom).activePair;
+          const pair = getEffectivePersistedFromStore().activePair;
           const capturedPairKey = canonicalStatsPairKey(pair);
           const actual: TaxonSlot = Math.random() < 0.5 ? "a" : "b";
           const taxonId = actual === "a" ? pair.idA : pair.idB;
@@ -202,14 +202,14 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
             try {
               const { imageUrl, login } = await fetchObservationForRandomCutoff(taxonId);
               if (genBefore !== getMutable().photoPrefetchGen) break;
-              if (store.get(persistedAtom).mediaMode !== "photo") break;
-              if (canonicalStatsPairKey(store.get(persistedAtom).activePair) !== capturedPairKey) break;
+              if (getEffectivePersistedFromStore().mediaMode !== "photo") break;
+              if (canonicalStatsPairKey(getEffectivePersistedFromStore().activePair) !== capturedPairKey) break;
 
               const ok = await preloadImageUrl(imageUrl);
               if (!ok) break;
               if (genBefore !== getMutable().photoPrefetchGen) break;
-              if (store.get(persistedAtom).mediaMode !== "photo") break;
-              if (canonicalStatsPairKey(store.get(persistedAtom).activePair) !== capturedPairKey) break;
+              if (getEffectivePersistedFromStore().mediaMode !== "photo") break;
+              if (canonicalStatsPairKey(getEffectivePersistedFromStore().activePair) !== capturedPairKey) break;
               if (getMutable().photoRoundPrefetchQueue.length >= PHOTO_PREFETCH_QUEUE_MAX) break;
 
               getMutable().photoRoundPrefetchQueue.push({
@@ -238,7 +238,7 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
         getMutable().photoPrefetchPumpRunning = false;
       }
       if (
-        store.get(persistedAtom).mediaMode === "photo" &&
+        getEffectivePersistedFromStore().mediaMode === "photo" &&
         getMutable().photoRoundPrefetchQueue.length < PHOTO_PREFETCH_QUEUE_MAX
       ) {
         schedulePhotoPrefetchPump();
@@ -273,8 +273,8 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
     m.roundActual = null;
     disposeQuizAudioRound();
 
-    const pair = store.get(persistedAtom).activePair;
-    const mode = store.get(persistedAtom).mediaMode;
+    const pair = getEffectivePersistedFromStore().activePair;
+    const mode = getEffectivePersistedFromStore().mediaMode;
 
     if (m.pendingMediaRetry && m.pendingMediaRetry.mode !== mode) {
       clearPendingMediaRetry();
@@ -391,8 +391,8 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
     getRefs().quizAudioRef.current?.pause();
     setRoundFeedback({ kind: correct ? "correct" : "wrong", text: correct ? "✓" : "✗" });
 
-    const pair = store.get(persistedAtom).activePair;
-    const stats = { ...getCurrentStatsFromState(store.get(persistedAtom)) };
+    const pair = getEffectivePersistedFromStore().activePair;
+    const stats = { ...getCurrentStatsFromState(getEffectivePersistedFromStore()) };
     stats.totalAttempts += 1;
     if (correct) {
       stats.totalCorrect += 1;
@@ -415,7 +415,7 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
     }
 
     const key = canonicalStatsPairKey(pair);
-    store.set(commitPersistedAtom, (p: PersistedState) => ({
+    store.set(commitOrDraftPersistedAtom, (p: PersistedState) => ({
       ...p,
       statsByPairKey: { ...p.statsByPairKey, [key]: { ...stats } },
     }));
@@ -431,7 +431,7 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
     const m = getMutable();
     if (m.roundBusy || m.roundActual === null) return;
     const actual = m.roundActual;
-    const pair = store.get(persistedAtom).activePair;
+    const pair = getEffectivePersistedFromStore().activePair;
     const revealedLabel = actual === "a" ? pair.labelA : pair.labelB;
 
     m.roundBusy = true;
@@ -439,7 +439,7 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
     getRefs().quizAudioRef.current?.pause();
     setRoundFeedback({ kind: "skip", text: revealedLabel });
 
-    const stats = { ...getCurrentStatsFromState(store.get(persistedAtom)) };
+    const stats = { ...getCurrentStatsFromState(getEffectivePersistedFromStore()) };
     const low = Math.min(pair.idA, pair.idB);
     const correctTid = actual === "a" ? pair.idA : pair.idB;
     if (correctTid === low) {
@@ -448,7 +448,7 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
       stats.skipWhenB += 1;
     }
     const key = canonicalStatsPairKey(pair);
-    store.set(commitPersistedAtom, (p: PersistedState) => ({
+    store.set(commitOrDraftPersistedAtom, (p: PersistedState) => ({
       ...p,
       statsByPairKey: { ...p.statsByPairKey, [key]: { ...stats } },
     }));
@@ -461,7 +461,7 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
   };
 
   const onImageLoad = (): void => {
-    if (store.get(persistedAtom).mediaMode !== "photo") return;
+    if (getEffectivePersistedFromStore().mediaMode !== "photo") return;
     clearPendingMediaRetry();
     setRoundPlaceholder({ showPlaceholder: false });
     setGuessDisabled(false);
@@ -470,10 +470,10 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
   };
 
   const onImageError = (): void => {
-    if (store.get(persistedAtom).mediaMode !== "photo") return;
+    if (getEffectivePersistedFromStore().mediaMode !== "photo") return;
     const m = getMutable();
     const actual = m.roundActual;
-    const pair = store.get(persistedAtom).activePair;
+    const pair = getEffectivePersistedFromStore().activePair;
     if (!actual) return;
     const taxonId = actual === "a" ? pair.idA : pair.idB;
     m.roundActual = null;
@@ -485,7 +485,7 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
   };
 
   const rebuildPresetRows = async (): Promise<void> => {
-    const active = canonicalStatsPairKey(store.get(persistedAtom).activePair);
+    const active = canonicalStatsPairKey(getEffectivePersistedFromStore().activePair);
     const ids = [...new Set(PRESETS.flatMap((p) => [p.pair.idA, p.pair.idB]))];
     const fetched = await Promise.all(ids.map((id) => fetchTaxonById(id)));
     const byId = new Map<number, InatTaxon | null>();
@@ -507,7 +507,7 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
   };
 
   const refreshPickerVisuals = async (): Promise<void> => {
-    const pair = store.get(persistedAtom).activePair;
+    const pair = getEffectivePersistedFromStore().activePair;
     const [ta, tb] = await Promise.all([fetchTaxonById(pair.idA), fetchTaxonById(pair.idB)]);
     const urlA = ta ? taxonSquareUrl(ta) : null;
     const urlB = tb ? taxonSquareUrl(tb) : null;

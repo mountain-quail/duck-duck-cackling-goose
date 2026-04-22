@@ -26,6 +26,8 @@ export interface PersistedState {
   activePair: TaxonPair;
   statsByPairKey: Record<string, StatsSnapshot>;
   mediaMode: MediaMode;
+  /** Pairs the user has switched to, most recent first (see `setActivePairInState`). */
+  recentPairs: TaxonPair[];
 }
 
 export interface InatPhoto {

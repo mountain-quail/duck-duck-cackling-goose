@@ -1,19 +1,19 @@
 import { getDefaultStore } from "jotai";
 import { useCallback } from "react";
-import { modalAtom, persistedAtom } from "../quiz/atoms";
+import { useSetAtom } from "jotai/react";
+import { applySettingsDraftAtom, getEffectivePersistedFromStore, modalAtom } from "../quiz/atoms";
 import { TAXON_SEARCH_DEBOUNCE_MS } from "../quiz/config";
 import { searchTaxaForPicker, taxonDisplayLabel } from "../quiz/inat";
-import { setActivePairInState, syncUrlToPair } from "../quiz/persist";
+import { applyPairInDraftState } from "../quiz/persist";
 import type { InatTaxon, TaxonPair } from "../quiz/types";
 import { useCloseTaxonSearch } from "./useCloseTaxonSearch";
-import { useCommitPersisted } from "./useCommitPersisted";
 import { useQuizGameContext } from "./useQuizGameContext";
 import { useQuizModal } from "./useQuizModal";
 
 export function useTaxonSearch() {
   const { modal, patchModal, taxonSearchTitle } = useQuizModal();
   const { engine, taxonSearchDialogRef, roundMutableRef } = useQuizGameContext();
-  const commitPersisted = useCommitPersisted();
+  const applySettingsDraft = useSetAtom(applySettingsDraftAtom);
   const closeTaxonSearch = useCloseTaxonSearch();
 
   const runTaxonSearchQuery = useCallback(
@@ -32,7 +32,7 @@ export function useTaxonSearch() {
         const mod = getDefaultStore().get(modalAtom);
         const slotLive = mod.taxonSearchSlot;
         if (!slotLive) return;
-        const pair = getDefaultStore().get(persistedAtom).activePair;
+        const pair = getEffectivePersistedFromStore().activePair;
         const otherId = slotLive === "a" ? pair.idB : pair.idA;
         const filtered = results.filter((t) => t.id !== otherId);
         patchModal({ taxonSearchResults: filtered });
@@ -75,7 +75,7 @@ export function useTaxonSearch() {
       const mod = store.get(modalAtom);
       const slot = mod.taxonSearchSlot;
       if (!slot) return;
-      const pair = store.get(persistedAtom).activePair;
+      const pair = getEffectivePersistedFromStore().activePair;
       const otherId = slot === "a" ? pair.idB : pair.idA;
       if (t.id === otherId) {
         patchModal({ taxonSearchHint: "Pick a different species than the other slot." });
@@ -87,14 +87,13 @@ export function useTaxonSearch() {
           ? { idA: t.id, idB: pair.idB, labelA: label, labelB: pair.labelB }
           : { idA: pair.idA, idB: t.id, labelA: pair.labelA, labelB: label };
 
-      commitPersisted((p) => setActivePairInState(p, next));
-      syncUrlToPair(next);
+      applySettingsDraft((p) => applyPairInDraftState(p, next));
       void engine.rebuildPresetRows();
       void engine.refreshPickerVisuals();
       closeTaxonSearch();
       void engine.startRound();
     },
-    [closeTaxonSearch, commitPersisted, engine, patchModal]
+    [applySettingsDraft, closeTaxonSearch, engine, patchModal]
   );
 
   return {

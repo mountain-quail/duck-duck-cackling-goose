@@ -65,6 +65,15 @@ export const PRESETS: ReadonlyArray<{ id: string; title: string; pair: TaxonPair
 
 export const DEFAULT_PAIR = PRESETS[0]!.pair;
 
+/** True if this pair is one of the built-in "fun challenges" presets (by taxon ids). */
+export function isPresetPair(pair: { idA: number; idB: number }): boolean {
+  return PRESETS.some(
+    (p) =>
+      (p.pair.idA === pair.idA && p.pair.idB === pair.idB) ||
+      (p.pair.idA === pair.idB && p.pair.idB === pair.idA)
+  );
+}
+
 export function isMediaMode(v: unknown): v is MediaMode {
   return v === "audio" || v === "photo";
 }
