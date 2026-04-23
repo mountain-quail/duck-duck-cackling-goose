@@ -30,6 +30,7 @@ export const STATS_DEFAULT: StatsSnapshot = {
   skipWhenB: 0,
 };
 
+/** Preset `pair` includes thumbnail URLs (iNat default_photo.square_url; no runtime fetch). */
 export const PRESETS: ReadonlyArray<{ id: string; title: string; pair: TaxonPair }> = [
   {
     id: "geese",
@@ -39,6 +40,8 @@ export const PRESETS: ReadonlyArray<{ id: string; title: string; pair: TaxonPair
       idB: 7089,
       labelA: "Cackling Goose",
       labelB: "Canada Goose",
+      urlA: "https://inaturalist-open-data.s3.amazonaws.com/photos/2713284/square.jpg",
+      urlB: "https://static.inaturalist.org/photos/181719420/square.jpg",
     },
   },
   {
@@ -49,6 +52,8 @@ export const PRESETS: ReadonlyArray<{ id: string; title: string; pair: TaxonPair
       idB: 199840,
       labelA: "Purple Finch",
       labelB: "House Finch",
+      urlA: "https://inaturalist-open-data.s3.amazonaws.com/photos/249715786/square.jpeg",
+      urlB: "https://static.inaturalist.org/photos/178968933/square.jpg",
     },
   },
   {
@@ -59,6 +64,8 @@ export const PRESETS: ReadonlyArray<{ id: string; title: string; pair: TaxonPair
       idB: 11935,
       labelA: "Violet-green Swallow",
       labelB: "Tree Swallow",
+      urlA: "https://inaturalist-open-data.s3.amazonaws.com/photos/79233627/square.jpg",
+      urlB: "https://inaturalist-open-data.s3.amazonaws.com/photos/196885341/square.jpeg",
     },
   },
 ];

@@ -59,10 +59,10 @@ export function taxonDisplayLabel(t: InatTaxon): string {
   return t.name?.trim() || `Taxon ${t.id}`;
 }
 
-export function taxonSquareUrl(t: InatTaxon): string | null {
+export function taxonSquareUrl(t: InatTaxon): string {
   const p = t.default_photo;
   const u = p?.square_url || p?.url;
-  return u && u.length > 0 ? u : null;
+  return u && u.length > 0 ? u : "";
 }
 
 export async function fetchTaxonById(id: number): Promise<InatTaxon | null> {

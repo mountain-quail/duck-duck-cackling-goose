@@ -11,10 +11,11 @@ import { useQuizPersisted } from "../../hooks/useQuizPersisted";
 import { useQuizSettingsActions } from "../../hooks/useQuizSettingsActions";
 import { CircleButton } from "./CircleButton";
 import { IconClose } from "./QuizIcons";
+import { PairButton, Taxon } from "./PairButton";
 
 function useRecentPairThumbnails(pairs: TaxonPair[]) {
   const keys = useMemo(() => pairs.map((p) => canonicalStatsPairKey(p)).join("|"), [pairs]);
-  const [byKey, setByKey] = useState<Record<string, { a: string | null; b: string | null }>>({});
+  const [byKey, setByKey] = useState<Record<string, { a: string; b: string }>>({});
   useEffect(() => {
     if (pairs.length === 0) {
       setByKey({});
@@ -22,14 +23,14 @@ function useRecentPairThumbnails(pairs: TaxonPair[]) {
     }
     let cancelled = false;
     void (async () => {
-      const next: Record<string, { a: string | null; b: string | null }> = {};
+      const next: Record<string, { a: string; b: string }> = {};
       await Promise.all(
         pairs.map(async (pair) => {
           const k = canonicalStatsPairKey(pair);
           const [ta, tb] = await Promise.all([fetchTaxonById(pair.idA), fetchTaxonById(pair.idB)]);
           next[k] = {
-            a: ta ? taxonSquareUrl(ta) : null,
-            b: tb ? taxonSquareUrl(tb) : null,
+            a: ta ? taxonSquareUrl(ta) : "",
+            b: tb ? taxonSquareUrl(tb) : "",
           };
         })
       );
@@ -142,37 +143,17 @@ export function SettingsModal() {
                 const t = recentThumbs[k];
                 return (
                   <li key={k}>
-                    <button
-                      type="button"
-                      className="preset-btn"
-                      aria-label={`${p.labelA} / ${p.labelB} (recent pair)`}
+                    <PairButton
                       onClick={() => applyTaxonPair(p)}
+                      aria-label={`${p.labelA} / ${p.labelB} (recent pair)`}
                     >
-                      <span className="preset-btn-sr">
-                        {p.labelA} / {p.labelB}
-                      </span>
-                      {t?.a ? (
-                        <img className="preset-btn-img preset-btn-img--a" src={t.a} alt="" decoding="async" />
-                      ) : (
-                        <span
-                          className="preset-btn-img preset-btn-img--a preset-btn-img--placeholder"
-                          aria-hidden
-                        />
-                      )}
-                      <span className="preset-btn-mid">
-                        <span className="preset-btn-name preset-btn-name--a">{p.labelA}</span>
-                        <span className="preset-btn-sep"> / </span>
-                        <span className="preset-btn-name preset-btn-name--b">{p.labelB}</span>
-                      </span>
-                      {t?.b ? (
-                        <img className="preset-btn-img preset-btn-img--b" src={t.b} alt="" decoding="async" />
-                      ) : (
-                        <span
-                          className="preset-btn-img preset-btn-img--b preset-btn-img--placeholder"
-                          aria-hidden
-                        />
-                      )}
-                    </button>
+                      <Taxon src={t?.a}>
+                        {p.labelA}
+                      </Taxon>
+                      <Taxon src={t?.b}>
+                        {p.labelB}
+                      </Taxon>
+                    </PairButton>
                   </li>
                 );
               })}
@@ -185,30 +166,19 @@ export function SettingsModal() {
         <ul className="preset-list" aria-labelledby="presetChallengesHeading">
           {presetRows.map((p) => (
             <li key={p.id}>
-              <button
-                type="button"
-                className={`preset-btn${p.active ? " preset-btn--active" : ""}`}
-                aria-label={`${p.pair.labelA} / ${p.pair.labelB} preset`}
-                aria-current={p.active ? "true" : undefined}
+              <PairButton
                 onClick={() => applyPresetById(p.id)}
+                aria-label={`${p.pair.labelA} / ${p.pair.labelB} preset`}
+                active={p.active}
+                aria-current={p.active ? "true" : undefined}
               >
-                <span className="preset-btn-sr">{p.title}</span>
-                {p.urlA ? (
-                  <img className="preset-btn-img preset-btn-img--a" src={p.urlA} alt="" decoding="async" />
-                ) : (
-                  <span className="preset-btn-img preset-btn-img--a preset-btn-img--placeholder" aria-hidden />
-                )}
-                <span className="preset-btn-mid">
-                  <span className="preset-btn-name preset-btn-name--a">{p.pair.labelA}</span>
-                  <span className="preset-btn-sep"> / </span>
-                  <span className="preset-btn-name preset-btn-name--b">{p.pair.labelB}</span>
-                </span>
-                {p.urlB ? (
-                  <img className="preset-btn-img preset-btn-img--b" src={p.urlB} alt="" decoding="async" />
-                ) : (
-                  <span className="preset-btn-img preset-btn-img--b preset-btn-img--placeholder" aria-hidden />
-                )}
-              </button>
+                <Taxon src={p.pair.urlA}>
+                  {p.pair.labelA}
+                </Taxon>
+                <Taxon src={p.pair.urlB}>
+                  {p.pair.labelB}
+                </Taxon>
+              </PairButton>
             </li>
           ))}
         </ul>

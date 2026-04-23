@@ -32,7 +32,7 @@ import { startQuizAudioVisualizer } from "./audioVisualizer";
 import { canonicalStatsPairKey } from "./stats";
 import { getCurrentStatsFromState } from "./statsModel";
 import type { RoundMutable } from "./roundMutable";
-import type { InatTaxon, MediaMode, PersistedState, TaxonPair, TaxonSlot } from "./types";
+import type { MediaMode, PersistedState, TaxonPair, TaxonSlot } from "./types";
 import {
   initialDisplayImage,
   initialRoundCredit,
@@ -57,7 +57,7 @@ export interface RoundEngine {
   onImageError: () => void;
   schedulePhotoPrefetchPump: () => void;
   invalidatePhotoPrefetchQueue: () => void;
-  rebuildPresetRows: () => Promise<void>;
+  rebuildPresetRows: () => void;
   refreshPickerVisuals: () => Promise<void>;
   disposeQuizAudioRound: () => void;
   destroyQuizAudioVisualizer: () => void;
@@ -484,25 +484,14 @@ export function createRoundEngine(deps: RoundEngineDeps): RoundEngine {
     window.setTimeout(() => void startRound(), 800);
   };
 
-  const rebuildPresetRows = async (): Promise<void> => {
+  const rebuildPresetRows = (): void => {
     const active = canonicalStatsPairKey(getEffectivePersistedFromStore().activePair);
-    const ids = [...new Set(PRESETS.flatMap((p) => [p.pair.idA, p.pair.idB]))];
-    const fetched = await Promise.all(ids.map((id) => fetchTaxonById(id)));
-    const byId = new Map<number, InatTaxon | null>();
-    ids.forEach((id, i) => byId.set(id, fetched[i] ?? null));
-
-    const rows: PresetRow[] = PRESETS.map((p) => {
-      const ta = byId.get(p.pair.idA) ?? null;
-      const tb = byId.get(p.pair.idB) ?? null;
-      return {
-        id: p.id,
-        title: p.title,
-        pair: p.pair,
-        urlA: ta ? taxonSquareUrl(ta) : null,
-        urlB: tb ? taxonSquareUrl(tb) : null,
-        active: canonicalStatsPairKey(p.pair) === active,
-      };
-    });
+    const rows: PresetRow[] = PRESETS.map((p) => ({
+      id: p.id,
+      title: p.title,
+      pair: p.pair,
+      active: canonicalStatsPairKey(p.pair) === active,
+    }));
     store.set(presetRowsAtom, rows);
   };
 

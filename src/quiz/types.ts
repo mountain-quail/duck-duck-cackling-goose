@@ -7,6 +7,9 @@ export interface TaxonPair {
   idB: number;
   labelA: string;
   labelB: string;
+  /** iNat square thumbnails; optional (e.g. built-in presets provide them, user pairs do not). */
+  urlA?: string;
+  urlB?: string;
 }
 
 export interface StatsSnapshot {

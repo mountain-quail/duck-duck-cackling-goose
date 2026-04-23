@@ -5,8 +5,6 @@ export interface PresetRow {
   id: string;
   title: string;
   pair: TaxonPair;
-  urlA: string | null;
-  urlB: string | null;
   active: boolean;
 }
 
