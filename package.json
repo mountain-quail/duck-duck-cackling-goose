@@ -8,9 +8,11 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@types/styled-components": "^5.1.36",
     "jotai": "^2.19.1",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "styled-components": "^6.4.1"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
