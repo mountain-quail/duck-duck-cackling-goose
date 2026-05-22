@@ -16,6 +16,8 @@ function buildSearchParams(overrides: Record<string, string>): URLSearchParams {
   return new URLSearchParams({
     photos: "true",
     quality_grade: "research",
+    term_id: "22",       // "Evidence of Presence"
+    term_value_id: "24", // "Organism" — excludes footprints, scat, feathers, etc.
     ...overrides,
   });
 }

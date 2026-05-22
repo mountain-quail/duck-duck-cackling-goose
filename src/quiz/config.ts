@@ -3,7 +3,7 @@ import type { MediaMode, StatsSnapshot, TaxonPair } from "./types";
 export const INAT_BASE = "https://api.inaturalist.org/v1/observations";
 export const INAT_TAXA_BASE = "https://api.inaturalist.org/v1/taxa";
 export const TAXON_SEARCH_DEBOUNCE_MS = 320;
-export const OBS_RANDOM_WINDOW_MS = 365 * 24 * 60 * 60 * 1000;
+export const OBS_RANDOM_WINDOW_MS = 5 * 365 * 24 * 60 * 60 * 1000;
 export const INAT_DATE_FETCH_PER_PAGE = 50;
 export const INAT_DATE_FETCH_MAX_PAGES = 5;
 
